@@ -309,13 +309,474 @@
   function deal(){
     clearError();
     const poolSize = parseInt(poolSelect.value, 10);
-    const players = parseInt(playersInput.value, 10);
-    const perPlayer = parseInt(perPlayerInput.value, 10);
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rozdanie · generator kart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --felt-1:#0f2a20;
+    --felt-2:#173d2d;
+    --felt-3:#1f4d39;
+    --brass:#c9a24b;
+    --brass-dim:#8f7638;
+    --cream:#ede6d6;
+    --cream-dim:#b9b3a2;
+    --danger:#c96b4b;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    font-family:'Inter',sans-serif;
+    color:var(--cream);
+    background:
+      radial-gradient(ellipse 120% 80% at 50% -10%, var(--felt-3), var(--felt-2) 55%, var(--felt-1) 100%);
+    background-attachment:fixed;
+    padding:32px 18px 60px;
+  }
+  .wrap{max-width:920px;margin:0 auto;}
 
-    if (!players || players < 1){ showError("Podaj przynajmniej jednego gracza."); return; }
-    if (!perPlayer || perPlayer < 1){ showError("Podaj przynajmniej jedną kartę na gracza."); return; }
-    if (players * perPlayer > poolSize){
-      showError("Za mało kart w puli: potrzeba " + (players*perPlayer) + ", dostępne " + poolSize + ". Zmniejsz liczbę graczy/kart lub wybierz większą pulę.");
+  header{text-align:center;margin-bottom:28px;}
+  header .eyebrow{
+    font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--brass);font-weight:600;margin-bottom:8px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(28px,6vw,44px);
+    margin:0 0 6px;
+    letter-spacing:-0.01em;
+  }
+  header p{color:var(--cream-dim);margin:0;font-size:14.5px;}
+
+  .panel{
+    background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015));
+    border:1px solid rgba(201,162,75,.28);
+    border-radius:var(--radius);
+    padding:22px;
+    backdrop-filter:blur(2px);
+    box-shadow:0 20px 40px -20px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+  }
+  @media (max-width:520px){ .grid{grid-template-columns:1fr;} }
+
+  .field label{
+    display:block;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--cream-dim);margin-bottom:7px;font-weight:600;
+  }
+  .field select, .field input{
+    width:100%;
+    background:rgba(0,0,0,.28);
+    border:1px solid rgba(201,162,75,.35);
+    color:var(--cream);
+    border-radius:9px;
+    padding:11px 12px;
+    font-size:15px;
+    font-family:'Inter',sans-serif;
+    appearance:none;
+  }
+  .field select:focus, .field input:focus{
+    outline:2px solid var(--brass);outline-offset:1px;
+  }
+  .field.full{grid-column:1 / -1;}
+
+  .pool-note{font-size:12.5px;color:var(--cream-dim);margin-top:4px;}
+
+  .mode-toggle{display:flex;gap:8px;}
+  .mode-btn{
+    flex:1;
+    background:rgba(0,0,0,.22);
+    border:1px solid rgba(201,162,75,.3);
+    color:var(--cream-dim);
+    padding:10px 12px;
+    border-radius:9px;
+    font-size:13.5px;
+    font-weight:600;
+    font-family:'Inter',sans-serif;
+    cursor:pointer;
+  }
+  .mode-btn.active{
+    background:rgba(201,162,75,.18);
+    border-color:var(--brass);
+    color:var(--cream);
+  }
+
+  .advanced-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;}
+  .advanced-row{
+    display:flex;align-items:center;gap:10px;
+    background:rgba(0,0,0,.2);
+    border:1px solid rgba(201,162,75,.22);
+    border-radius:9px;
+    padding:8px 10px;
+  }
+  .advanced-row .label{
+    flex:1;font-size:13.5px;color:var(--cream-dim);
+  }
+  .advanced-row input{
+    width:70px;
+    background:rgba(0,0,0,.3);
+    border:1px solid rgba(201,162,75,.35);
+    color:var(--cream);
+    border-radius:7px;
+    padding:7px 8px;
+    font-size:14px;
+    font-family:'Inter',sans-serif;
+  }
+  .advanced-row .remove{
+    background:transparent;border:none;color:var(--danger);
+    font-size:18px;line-height:1;cursor:pointer;padding:4px 6px;
+  }
+  .add-player{
+    background:transparent;border:1px dashed rgba(201,162,75,.5);
+    color:var(--brass);padding:9px 14px;border-radius:9px;
+    font-size:13.5px;cursor:pointer;font-family:'Inter',sans-serif;
+    width:100%;
+  }
+  .add-player:hover{background:rgba(201,162,75,.08);}
+
+  .actions{margin-top:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  button.deal{
+    background:linear-gradient(180deg,#dcb75e,var(--brass));
+    color:#1b1405;
+    border:none;
+    font-weight:700;
+    font-size:15px;
+    padding:13px 26px;
+    border-radius:10px;
+    cursor:pointer;
+    letter-spacing:.01em;
+    box-shadow:0 8px 18px -8px rgba(201,162,75,.7);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  button.deal:hover{transform:translateY(-1px);box-shadow:0 12px 22px -8px rgba(201,162,75,.8);}
+  button.deal:active{transform:translateY(0);}
+  button.reset{
+    background:transparent;border:1px solid rgba(237,230,214,.25);
+    color:var(--cream-dim);padding:12px 18px;border-radius:10px;
+    font-size:14px;cursor:pointer;font-family:'Inter',sans-serif;
+  }
+  button.reset:hover{color:var(--cream);border-color:rgba(237,230,214,.5);}
+
+  .error{
+    margin-top:14px;padding:10px 14px;border-radius:9px;
+    background:rgba(201,107,75,.15);border:1px solid rgba(201,107,75,.5);
+    color:#f0c3b3;font-size:13.5px;display:none;
+  }
+  .error.show{display:block;}
+
+  .status-line{
+    margin-top:14px;font-size:12.5px;color:var(--cream-dim);
+    display:none;
+  }
+  .status-line.show{display:block;}
+
+  #results{margin-top:34px;display:flex;flex-direction:column;gap:26px;}
+
+  .hand{
+    background:rgba(0,0,0,.18);
+    border:1px solid rgba(201,162,75,.18);
+    border-radius:var(--radius);
+    padding:18px 18px 22px;
+  }
+  .hand-title{
+    display:flex;align-items:baseline;gap:10px;margin-bottom:14px;
+  }
+  .hand-title .num{
+    font-family:'Fraunces',serif;font-weight:600;color:var(--brass);font-size:20px;
+  }
+  .hand-title .name{font-size:14px;color:var(--cream-dim);letter-spacing:.02em;}
+
+  .cards-row{
+    display:flex;flex-wrap:wrap;gap:10px;
+  }
+  .card-slot{
+    width:64px;height:92px;
+    filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));
+    opacity:0;
+    animation:deal .42s cubic-bezier(.2,.7,.3,1) forwards;
+  }
+  .card-slot svg{width:100%;height:100%;display:block;}
+
+  @keyframes deal{
+    from{opacity:0; transform:translateY(-26px) rotate(-8deg) scale(.85);}
+    to{opacity:1; transform:translateY(0) rotate(0) scale(1);}
+  }
+
+  .leftover{
+    margin-top:6px;font-size:12.5px;color:var(--cream-dim);text-align:center;
+  }
+
+  footer{
+    margin-top:44px;text-align:center;font-size:11.5px;color:rgba(185,179,162,.55);
+    line-height:1.6;
+  }
+  footer a{color:rgba(201,162,75,.75);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Stół do gry</div>
+    <h1>Rozdanie kart</h1>
+    <p>Wybierz pulę, liczbę graczy i kart — reszta dzieje się losowo.</p>
+  </header>
+
+  <div class="panel">
+    <div class="grid">
+      <div class="field full">
+        <label for="pool">Pula kart</label>
+        <select id="pool">
+          <option value="52">Pełna talia — 52 karty</option>
+          <option value="36">Talia niemiecka — 36 kart (6–As)</option>
+          <option value="32">Talia francuska krótka — 32 karty (7–As)</option>
+          <option value="24">Talia euchre — 24 karty (9–As)</option>
+          <option value="109">Podwójna talia + jokery — 109 kart (2×52 + 5 jokerów)</option>
+        </select>
+        <div class="pool-note" id="poolNote"></div>
+      </div>
+
+      <div class="field full">
+        <label>Tryb rozdania</label>
+        <div class="mode-toggle">
+          <button type="button" class="mode-btn active" id="modeStdBtn">Standardowy</button>
+          <button type="button" class="mode-btn" id="modeAdvBtn">Zaawansowany</button>
+        </div>
+      </div>
+
+      <div class="field" id="playersField">
+        <label for="players">Liczba graczy</label>
+        <input type="number" id="players" min="1" max="10" value="4">
+      </div>
+
+      <div class="field" id="perPlayerField">
+        <label for="perPlayer">Kart na gracza</label>
+        <input type="number" id="perPlayer" min="1" max="20" value="5">
+      </div>
+
+      <div class="field full" id="advancedField" hidden>
+        <label>Karty dla każdego gracza z osobna</label>
+        <div id="advancedRows" class="advanced-rows"></div>
+        <button type="button" class="add-player" id="addPlayerBtn">+ Dodaj gracza</button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="deal" id="dealBtn">Rozdaj karty</button>
+      <button class="reset" id="resetBtn">Wyczyść stół</button>
+    </div>
+
+    <div class="error" id="error"></div>
+    <div class="status-line" id="loadStatus">Ładuję grafiki kart…</div>
+  </div>
+
+  <div id="results"></div>
+
+  <footer>
+    Grafiki kart: „SVG-cards” by David Bellot &amp; Huub de Beer, licencja LGPL-2.1 —
+    <a href="https://github.com/htdebeer/SVG-cards" target="_blank" rel="noopener">źródło i licencja</a>
+  </footer>
+</div>
+
+<svg width="0" height="0" style="position:absolute;overflow:hidden" id="spriteHolder" aria-hidden="true"></svg>
+
+<script>
+(function(){
+  const SPRITE_URL = "https://cdn.jsdelivr.net/gh/htdebeer/SVG-cards@master/svg-cards.svg";
+  const SUITS = ["spade","heart","diamond","club"];
+  const SUIT_LABEL = {spade:"Pik",heart:"Kier",diamond:"Karo",club:"Trefl"};
+  const RANK_LABEL = {1:"As",11:"Walet",12:"Dama",13:"Król"};
+  const RANK_ID = {1:"1",2:"2",3:"3",4:"4",5:"5",6:"6",7:"7",8:"8",9:"9",10:"10",11:"jack",12:"queen",13:"king"};
+
+  const poolSelect = document.getElementById("pool");
+  const poolNote = document.getElementById("poolNote");
+  const playersInput = document.getElementById("players");
+  const perPlayerInput = document.getElementById("perPlayer");
+  const dealBtn = document.getElementById("dealBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const errorBox = document.getElementById("error");
+  const results = document.getElementById("results");
+  const loadStatus = document.getElementById("loadStatus");
+
+  const modeStdBtn = document.getElementById("modeStdBtn");
+  const modeAdvBtn = document.getElementById("modeAdvBtn");
+  const playersField = document.getElementById("playersField");
+  const perPlayerField = document.getElementById("perPlayerField");
+  const advancedField = document.getElementById("advancedField");
+  const advancedRows = document.getElementById("advancedRows");
+  const addPlayerBtn = document.getElementById("addPlayerBtn");
+
+  let spriteReady = false;
+  let mode = "standard"; // or "advanced"
+
+  function setMode(next){
+    mode = next;
+    const isAdv = mode === "advanced";
+    modeStdBtn.classList.toggle("active", !isAdv);
+    modeAdvBtn.classList.toggle("active", isAdv);
+    playersField.hidden = isAdv;
+    perPlayerField.hidden = isAdv;
+    advancedField.hidden = !isAdv;
+    if (isAdv && advancedRows.children.length === 0){
+      addAdvancedRow(3);
+      addAdvancedRow(6);
+    }
+  }
+  modeStdBtn.addEventListener("click", () => setMode("standard"));
+  modeAdvBtn.addEventListener("click", () => setMode("advanced"));
+
+  function renumberAdvancedRows(){
+    [...advancedRows.children].forEach((row, i) => {
+      row.querySelector(".label").textContent = "Gracz " + (i + 1);
+    });
+  }
+
+  function addAdvancedRow(defaultCount){
+    const row = document.createElement("div");
+    row.className = "advanced-row";
+    row.innerHTML =
+      '<span class="label"></span>' +
+      '<input type="number" min="1" max="30" value="' + (defaultCount || 5) + '">' +
+      '<button type="button" class="remove" title="Usuń gracza">✕</button>';
+    row.querySelector(".remove").addEventListener("click", () => {
+      row.remove();
+      renumberAdvancedRows();
+    });
+    advancedRows.appendChild(row);
+    renumberAdvancedRows();
+  }
+  addPlayerBtn.addEventListener("click", () => addAdvancedRow(5));
+
+  function poolRanks(size){
+    switch(size){
+      case 24: return [9,10,11,12,13,1];
+      case 32: return [7,8,9,10,11,12,13,1];
+      case 36: return [6,7,8,9,10,11,12,13,1];
+      default: return [1,2,3,4,5,6,7,8,9,10,11,12,13];
+    }
+  }
+
+  function standardDeck(){
+    const ranks = poolRanks(52);
+    const deck = [];
+    for (const suit of SUITS){
+      for (const rank of ranks){
+        deck.push({suit, rank, id: suit + "_" + RANK_ID[rank], label: SUIT_LABEL[suit] + (RANK_LABEL[rank] ? " " + RANK_LABEL[rank] : " " + rank)});
+      }
+    }
+    return deck;
+  }
+
+  function buildDeck(size){
+    if (size === 109){
+      // 2 pełne talie (104 karty) + 5 jokerów
+      const deck = standardDeck().concat(standardDeck());
+      const jokerIds = ["joker_red","joker_red","joker_red","joker_black","joker_black"];
+      jokerIds.forEach(id => deck.push({suit:"joker", rank:0, id, label:"Joker"}));
+      return deck;
+    }
+    const ranks = poolRanks(size);
+    const deck = [];
+    for (const suit of SUITS){
+      for (const rank of ranks){
+        deck.push({suit, rank, id: suit + "_" + RANK_ID[rank], label: SUIT_LABEL[suit] + (RANK_LABEL[rank] ? " " + RANK_LABEL[rank] : " " + rank)});
+      }
+    }
+    return deck;
+  }
+
+  function updatePoolNote(){
+    const size = parseInt(poolSelect.value, 10);
+    poolNote.textContent = "Dostępnych kart w puli: " + size + ".";
+  }
+  poolSelect.addEventListener("change", updatePoolNote);
+  updatePoolNote();
+
+  function shuffle(arr){
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function showError(msg){
+    errorBox.textContent = msg;
+    errorBox.classList.add("show");
+  }
+  function clearError(){
+    errorBox.classList.remove("show");
+    errorBox.textContent = "";
+  }
+
+  function cardSVG(card){
+    return '<svg viewBox="0 0 169.075 244.64"><use href="#' + card.id + '"></use></svg>';
+  }
+
+  async function loadSprite(){
+    try{
+      const res = await fetch(SPRITE_URL);
+      const text = await res.text();
+      const holder = document.getElementById("spriteHolder");
+      holder.innerHTML = text.replace(/<\?xml[^>]*\?>/,"");
+      // the fetched file is itself a full <svg> document; pull its inner defs into our holder
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, "image/svg+xml");
+      const root = doc.documentElement;
+      const wrapper = document.createElementNS("http://www.w3.org/2000/svg","g");
+      while(root.firstChild){ wrapper.appendChild(root.firstChild); }
+      holder.innerHTML = "";
+      holder.appendChild(wrapper);
+      spriteReady = true;
+      loadStatus.classList.remove("show");
+    }catch(e){
+      loadStatus.textContent = "Nie udało się załadować grafik kart. Odśwież stronę.";
+    }
+  }
+  loadStatus.classList.add("show");
+  loadSprite();
+
+  function getHandSizes(){
+    if (mode === "standard"){
+      const players = parseInt(playersInput.value, 10);
+      const perPlayer = parseInt(perPlayerInput.value, 10);
+      if (!players || players < 1){ throw "Podaj przynajmniej jednego gracza."; }
+      if (!perPlayer || perPlayer < 1){ throw "Podaj przynajmniej jedną kartę na gracza."; }
+      return Array(players).fill(perPlayer);
+    }
+    const rows = [...advancedRows.children];
+    if (rows.length < 1){ throw "Dodaj przynajmniej jednego gracza."; }
+    return rows.map(row => {
+      const v = parseInt(row.querySelector("input").value, 10);
+      if (!v || v < 1){ throw "Każdy gracz musi dostać przynajmniej jedną kartę."; }
+      return v;
+    });
+  }
+
+  function deal(){
+    clearError();
+    const poolSize = parseInt(poolSelect.value, 10);
+
+    let sizes;
+    try{ sizes = getHandSizes(); }
+    catch(msg){ showError(msg); return; }
+
+    const total = sizes.reduce((a,b) => a+b, 0);
+    if (total > poolSize){
+      showError("Za mało kart w puli: potrzeba " + total + ", dostępne " + poolSize + ". Zmniejsz liczbę graczy/kart lub wybierz większą pulę.");
       return;
     }
     if (!spriteReady){ showError("Grafiki kart jeszcze się ładują — spróbuj za chwilę."); return; }
@@ -324,15 +785,45 @@
     results.innerHTML = "";
 
     let cursor = 0;
-    for (let p = 1; p <= players; p++){
-      const hand = deck.slice(cursor, cursor + perPlayer);
-      cursor += perPlayer;
+    sizes.forEach((count, idx) => {
+      const p = idx + 1;
+      const hand = deck.slice(cursor, cursor + count);
+      cursor += count;
 
       const handEl = document.createElement("div");
       handEl.className = "hand";
       handEl.innerHTML =
         '<div class="hand-title"><span class="num">Gracz ' + p + '</span>' +
         '<span class="name">' + hand.length + ' kart' + (hand.length===1?'a':(hand.length<5?'y':'')) + '</span></div>' +
+        '<div class="cards-row"></div>';
+
+      const row = handEl.querySelector(".cards-row");
+      hand.forEach((card, i) => {
+        const slot = document.createElement("div");
+        slot.className = "card-slot";
+        slot.style.animationDelay = (i * 55) + "ms";
+        slot.title = card.label;
+        slot.innerHTML = cardSVG(card);
+        row.appendChild(slot);
+      });
+
+      results.appendChild(handEl);
+    });
+
+    const remaining = poolSize - cursor;
+    const leftover = document.createElement("div");
+    leftover.className = "leftover";
+    leftover.textContent = remaining > 0 ? ("Karty pozostałe w puli: " + remaining + ".") : "Cała pula rozdana.";
+    results.appendChild(leftover);
+  }
+
+  dealBtn.addEventListener("click", deal);
+  resetBtn.addEventListener("click", () => { results.innerHTML = ""; clearError(); });
+})();
+</script>
+</body>
+</html>
+:'')) + '</span></div>' +
         '<div class="cards-row"></div>';
 
       const row = handEl.querySelector(".cards-row");
